@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Table</title>
+    <script src="http://d3js.org/d3.v3.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="plot.js"></script>
+    <style type="text/css">
+
+    .column {
+        float: left;
+        height:100%;
+    }
+
+    </style>
+</head>
+<body>
+  <div class="column">
+      <div>
+      Click on a domain do display runs. <br/>
+      Click on a point to open run in a new window.
+      </div>
+      <br/>
+      Stats:
+      <div id="stats">
+      </div>
+
+      <div id="myDiv" style="width: 800px; height: 400px;"><!-- Plotly chart will be drawn inside this DIV --></div>
+
+      <select id="column">
+        <option value="Load Time (ms)" selected="selected"> Load Time (ms) </option>
+        <option value="Speed Index"> Speed Index </option>
+        <option value="Time to First Byte (ms)"> Time to First Byte (ms) </option>
+        <option value="Bytes Out"> Bytes Out </option>
+        <option value="Bytes In"> Bytes In </option>
+        <option value="DNS Lookups"> DNS Lookups </option>
+        <option value="Connections"> Connections </option>
+        <option value="Requests"> Requests </option>
+        <option value="OK Responses"> OK Responses </option>
+        <option value="Redirects"> Redirects </option>
+        <option value="Not Modified"> Not Modified </option>
+        <option value="Not Found"> Not Found </option>
+        <option value="Other Responses"> Other Responses </option>
+        <option value="Time to Start Render (ms)"> Time to Start Render (ms) </option>
+        <option value="Segments Transmitted"> Segments Transmitted </option>
+        <option value="Segments Retransmitted"> Segments Retransmitted </option>
+        <option value="Packet Loss (out)"> Packet Loss (out) </option>
+        <option value="Activity Time(ms)"> Activity Time(ms) </option>
+        <option value="Doc Complete Time (ms)"> Doc Complete Time (ms) </option>
+        <option value="Event GUID"> Event GUID </option>
+        <option value="Time to DOM Element (ms)"> Time to DOM Element (ms) </option>
+        <option value="Includes Object Data"> Includes Object Data </option>
+        <option value="Cache Score"> Cache Score </option>
+        <option value="Static CDN Score"> Static CDN Score </option>
+        <option value="One CDN Score"> One CDN Score </option>
+        <option value="GZIP Score"> GZIP Score </option>
+        <option value="Cookie Score"> Cookie Score </option>
+        <option value="Keep-Alive Score"> Keep-Alive Score </option>
+        <option value="DOCTYPE Score"> DOCTYPE Score </option>
+        <option value="Minify Score"> Minify Score </option>
+        <option value="Combine Score"> Combine Score </option>
+        <option value="Bytes Out (Doc)"> Bytes Out (Doc) </option>
+        <option value="Bytes In (Doc)"> Bytes In (Doc) </option>
+        <option value="DNS Lookups (Doc)"> DNS Lookups (Doc) </option>
+        <option value="Connections (Doc)"> Connections (Doc) </option>
+        <option value="Requests (Doc)"> Requests (Doc) </option>
+        <option value="OK Responses (Doc)"> OK Responses (Doc) </option>
+        <option value="Redirects (Doc)"> Redirects (Doc) </option>
+        <option value="Not Modified (Doc)"> Not Modified (Doc) </option>
+        <option value="Not Found (Doc)"> Not Found (Doc) </option>
+        <option value="Other Responses (Doc)"> Other Responses (Doc) </option>
+        <option value="Compression Score"> Compression Score </option>
+        <option value="ETag Score"> ETag Score </option>
+        <option value="Flagged Requests"> Flagged Requests </option>
+        <option value="Flagged Connections"> Flagged Connections </option>
+        <option value="Max Simultaneous Flagged Connections"> Max Simultaneous Flagged Connections </option>
+        <option value="Time to Base Page Complete (ms)"> Time to Base Page Complete (ms) </option>
+        <option value="Base Page Result"> Base Page Result </option>
+        <option value="Gzip Total Bytes"> Gzip Total Bytes </option>
+        <option value="Gzip Savings"> Gzip Savings </option>
+        <option value="Minify Total Bytes"> Minify Total Bytes </option>
+        <option value="Minify Savings"> Minify Savings </option>
+        <option value="Image Total Bytes"> Image Total Bytes </option>
+        <option value="Image Savings"> Image Savings </option>
+        <option value="Base Page Redirects"> Base Page Redirects </option>
+        <option value="AFT (ms)"> AFT (ms) </option>
+        <option value="DOM Elements"> DOM Elements </option>
+        <option value="PageSpeed Version"> PageSpeed Version </option>
+        <option value="Time to Title"> Time to Title </option>
+        <option value="Load Event Start"> Load Event Start </option>
+        <option value="Load Event End"> Load Event End </option>
+        <option value="DOM Content Ready Start"> DOM Content Ready Start </option>
+        <option value="DOM Content Ready End"> DOM Content Ready End </option>
+        <option value="Visually Complete (ms)"> Visually Complete (ms) </option>
+        <option value="Base Page Server Count"> Base Page Server Count </option>
+        <option value="Base Page Server RTT"> Base Page Server RTT </option>
+      </select>
+      <button onclick="displayDomain(gDomain)"> Replot </button>
+      <input type="checkbox" id="sorted" checked> Sorted
+      <input type="checkbox" id="cached" checked> Display Repeat View
+
+      <select id="connectivity">
+        <option value="Cable" selected="selected"> Cable </option>
+        <option value="3G"> 3G </option>
+        <option value="Dial"> Dial </option>
+      </select>
+
+      <br>
+
+      <input type="checkbox" name="browser" value="Firefox 43"> Firefox 43 <br>
+      <input type="checkbox" name="browser" value="Firefox 44" checked> Firefox 44 <br>
+      <input type="checkbox" name="browser" value="Google Chrome 47"> Chrome 47 <br>
+      <input type="checkbox" name="browser" value="Google Chrome 48" checked> Chrome 48 <br>
+      <input type="checkbox" name="browser" value="Nightly 44"> Nightly 44 - e10s <br>
+      <input type="checkbox" name="browser" value="Nightly 47"> Nightly 47 - e10s <br>
+      <input type="checkbox" name="browser" value="Google Chrome 49"> Chrome 49 <br>
+  </div>
+
+  <table id="domains">
+  </table>
+
+</body>
+</html>
