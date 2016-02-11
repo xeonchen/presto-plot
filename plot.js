@@ -48,7 +48,6 @@ function displayDomain(domain) {
             for (var i in plots) {
                 if (!cached && plots[i].cached)
                     continue;
-                console.log(cached+" "+plots[i].cached);
                 plot_values.push(plots[i]);
             }
             displayPlot(plot_values, domain);
@@ -115,6 +114,8 @@ function displayPlot(plots, title) {
             countFirstBetter++;
     }
 
+    displayStatLine(firstViewPlots[0].browser_name+" "+firstViewPlots[0].version +" vs. "+firstViewPlots[1].browser_name+" "+firstViewPlots[1].version);
+
     avgFirstDiff = avgFirstDiff/count;
 
     displayStatLine("Average first diff: " + avgFirstDiff.toFixed(2));
@@ -178,7 +179,7 @@ function lazyGetPlot(plotTable, browser_name, browser_version, cached, connectiv
 
   var sorted = document.getElementById('sorted').checked;
   var mode = (sorted ? "lines+" : "") + "markers";
-  plotTable[id] = { name: id, x: [], y: [], info: [], mode: mode, type: 'scatter',  marker: { color: color }, cached: cached };
+  plotTable[id] = { name: id, x: [], y: [], info: [], mode: mode, type: 'scatter',  marker: { color: color }, cached: cached, browser_name: browser_name, version: browser_version };
   return plotTable[id];
 }
 
