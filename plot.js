@@ -2,6 +2,7 @@ var gPlots = [];
 var gFirefoxId = null;
 var gChromeId = null;
 var gTitle = null;
+var gDomain = null;
 
 function getResultPromise(resultId) {
     return new Promise(function(resolve, reject) {
@@ -26,7 +27,7 @@ function displayDomain(domain) {
         for (var i in tmp)
             if (tmp[i].connectivity == connectivity)
                 for (var j in browsers) {
-                    if (browsers[j].checked && (tmp[i].browser_name + " " + tmp[i].browser_version.substring(0,2)).startsWith(browsers[j].value))
+                    if (browsers[j].checked && (tmp[i].browser_name + " " + tmp[i].browser_version).startsWith(browsers[j].value))
                         requests.push(tmp[i]);
                 }
 
@@ -53,7 +54,7 @@ function displayDomain(domain) {
             displayPlot(plot_values, domain);
         });
     });
-    oReq.open("GET", "http://webpagetest.meteor.com/api/get/"+encodeURIComponent(domain));
+    oReq.open("GET", "http://presto-wpt.herokuapp.com/api/get/"+encodeURIComponent(domain));
     oReq.send();
 }
 
