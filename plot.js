@@ -147,25 +147,20 @@ function displayPlot(plots, title) {
     var layout = {
       hovermode:'closest',
       title: title,
-      xaxis: {
-        title: 'run index',
-        titlefont: {
-          size: 18,
-        }
-      },
-      yaxis: {
-        title: tableColumn,
-        titlefont: {
-          size: 18,
-        }
-      }
     };
 
-    Plotly.newPlot('myDiv', plots, layout);
+
+    var traces = [];
+    for (var p of plots) {
+        traces.push({y:p.y, type: 'box', name: p.name, info: p.info, boxpoints: 'all'});
+    }
+    Plotly.newPlot('myDiv', traces, layout);
     var myPlot = document.getElementById('myDiv');
-    myPlot.on('plotly_click', function(data){
-        var index = data.points[0].x;
-        window.open("http://www.webpagetest.org/result/" + data.points[0].data.info[index]);
+    myPlot.on('plotly_click', function(clicked){
+        let data = clicked.points[0].data;
+        for (let i=0; i<data.y.length; i++) {
+            console.log(data.y[i], "http://www.webpagetest.org/result/" + data.info[i]);
+        }
     });
 }
 
