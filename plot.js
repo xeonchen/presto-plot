@@ -6,7 +6,7 @@ var gDomain = null;
 
 function getResultPromise(resultId) {
     return new Promise(function(resolve, reject) {
-        d3.csv("http://www.webpagetest.org/result/"+resultId+"/page_data.csv", function(data) {
+        d3.csv("https://www.webpagetest.org/result/"+resultId+"/page_data.csv", function(data) {
             resolve(data);
         });
     });
@@ -159,7 +159,7 @@ function displayPlot(plots, title) {
     myPlot.on('plotly_click', function(clicked){
         let data = clicked.points[0].data;
         for (let i=0; i<data.y.length; i++) {
-            console.log(data.y[i], "http://www.webpagetest.org/result/" + data.info[i]);
+            console.log(data.y[i], "https://www.webpagetest.org/result/" + data.info[i]);
         }
     });
 }
