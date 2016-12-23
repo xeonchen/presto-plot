@@ -4,9 +4,12 @@ var gChromeId = null;
 var gTitle = null;
 var gDomain = null;
 
+const WPT_SERVER = 'https://www.webpagetest.org';
+const PRESTO_SERVER = 'http://presto-wpt.herokuapp.com';
+
 function getResultPromise(resultId) {
     return new Promise(function(resolve, reject) {
-        d3.csv("https://www.webpagetest.org/result/"+resultId+"/page_data.csv", function(data) {
+        d3.csv(WPT_SERVER+"/result/"+resultId+"/page_data.csv", function(data) {
             resolve(data);
         });
     });
@@ -15,11 +18,13 @@ function getResultPromise(resultId) {
 function displayDomain(domain) {
     gDomain = domain;
     var oReq = new XMLHttpRequest();
+    var label = document.getElementById('test_label').value;
+
     oReq.addEventListener("load", function() {
         var requests = JSON.parse(this.responseText);
         var promises = [];
 
-        var browsers = document.getElementsByName('browser');
+        var browsers = document.getElementById('browser_prefixes').value.split(',').map(String.trim);
         var connectivity = document.getElementById('connectivity').value;
 
         var tmp = requests;
@@ -27,7 +32,7 @@ function displayDomain(domain) {
         for (var i in tmp)
             if (tmp[i].connectivity == connectivity)
                 for (var j in browsers) {
-                    if (browsers[j].checked && (tmp[i].browser_name + " " + tmp[i].browser_version).startsWith(browsers[j].value))
+                    if ( (tmp[i].browser_name + " " + tmp[i].browser_version).startsWith(browsers[j]))
                         requests.push(tmp[i]);
                 }
 
@@ -54,7 +59,11 @@ function displayDomain(domain) {
             displayPlot(plot_values, domain);
         });
     });
-    oReq.open("GET", "http://presto-wpt.herokuapp.com/api/get/"+encodeURIComponent(domain));
+    var endpointURL = PRESTO_SERVER + "/api/get/"+encodeURIComponent(domain);
+    if (label) {
+        endpointURL += "?label="+label;
+    }
+    oReq.open("GET", endpointURL);
     oReq.send();
 }
 
@@ -103,6 +112,13 @@ function displayPlot(plots, title) {
             repeatViewPlots.push(plots[plotIndex]);
         else
             firstViewPlots.push(plots[plotIndex]);
+    }
+
+    if (firstViewPlots.length == 0) {
+        // Clear the graph.
+        console.log("firstViewPlots is empty");
+        Plotly.newPlot('myDiv', [], {});
+        return;
     }
 
     var count = 0;
@@ -159,7 +175,7 @@ function displayPlot(plots, title) {
     myPlot.on('plotly_click', function(clicked){
         let data = clicked.points[0].data;
         for (let i=0; i<data.y.length; i++) {
-            console.log(data.y[i], "https://www.webpagetest.org/result/" + data.info[i]);
+            console.log(data.y[i], WPT_SERVER + "/result/" + data.info[i]);
         }
     });
 }
