@@ -4,8 +4,8 @@ var gChromeId = null;
 var gTitle = null;
 var gDomain = null;
 
-const WPT_SERVER = 'https://www.webpagetest.org';
-const PRESTO_SERVER = 'http://presto-wpt.herokuapp.com';
+const WPT_SERVER = 'http://moz.xeon.tw';
+const PRESTO_SERVER = 'http://moz.xeon.tw:3000';
 
 function getResultPromise(resultId) {
     return new Promise(function(resolve, reject) {
@@ -184,7 +184,8 @@ function lazyGetPlot(plotTable, browser_name, browser_version, cached, connectiv
   var colors = { 'Firefox': 'red', 'Google Chrome': 'gray', 'Nightly': 'blue'};
   var color = (cached ? 'light' : '') + colors[browser_name];
 
-  var id = browser_name + " " + browser_version + " " + (cached ? "repeatView" : "firstView") + " " + connectivity;
+  // var id = browser_name + " " + browser_version + " " + (cached ? "repeatView" : "firstView") + " " + connectivity;
+  var id = browser_name.substring(0, 16) + " " + browser_version + " " + (cached ? "2ndView" : "1stView");
   if (plotTable[id]) {
     return plotTable[id];
   }
@@ -211,7 +212,7 @@ function processResult(plots, testid, allRows, browser_name, browser_version, co
         var x = parseInt(row['Run']);
         var cached = parseInt(row['Cached']);
         var text = testid+"/"+x+"/details" + (cached ? "/cached" : "");
-        
+
         if (!cached) {
             net.x.push(x+net_len);
             net.y.push(y);
@@ -245,12 +246,6 @@ window.addEventListener("load", function() {
             table.appendChild(tr);
         }
     });
-    //oReq.open("GET", "http://webpagetest.meteor.com/api/domains");
-    oReq.open("GET", "top100.json");
+    oReq.open("GET", PRESTO_SERVER + "/api/domains");
     oReq.send();
 });
-
-function displayTable(testData) {
-    var div = computeTable(testData);
-    document.body.appendChild(div);
-}
