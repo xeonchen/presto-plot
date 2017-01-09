@@ -1,277 +1,401 @@
-var gPlots = [];
-var gFirefoxId = null;
-var gChromeId = null;
-var gTitle = null;
-var gDomain = null;
+ 'use strict';
 
-const WPT_SERVER = 'http://moz.xeon.tw';
-const PRESTO_SERVER = 'http://moz.xeon.tw:3000';
+(function() {
 
-function getResultPromise(resultId) {
-    return new Promise(function(resolve, reject) {
-        d3.csv(WPT_SERVER+"/result/"+resultId+"/page_data.csv", function(data) {
-            resolve(data);
+    let gDomain = null;
+    let gDomainData = null;
+    let gBrowsers = null;
+
+    const WPT_SERVER = 'http://moz.xeon.tw';
+    const PRESTO_SERVER = 'http://moz.xeon.tw:3000';
+
+    function makeXHRRequest(url) {
+        return new Promise(function(resolve, reject) {
+            let xhr = new XMLHttpRequest();
+            xhr.open('GET', url);
+
+            xhr.onload = function() {
+                if (this.status >= 200 && this.status < 300) {
+                    resolve(this.responseText);
+                } else {
+                    reject({ status: this.status, statusText: xhr.statusText });
+                }
+            };
+
+            xhr.onerror = function() {
+                reject({ status: this.status, statusText: xhr.statusText });
+            };
+
+            xhr.send();
         });
-    });
-}
+    }
 
-function displayDomain(domain) {
-    gDomain = domain;
-    var oReq = new XMLHttpRequest();
-    var label = document.getElementById('test_label').value;
+    function getResultPromise(resultId) {
+        return new Promise(function(resolve, reject) {
+            let url = WPT_SERVER + '/result/' + resultId + '/page_data.csv';
+            d3.csv(url, function(data) {
+                resolve(data);
+            });
+        });
+    }
 
-    oReq.addEventListener("load", function() {
-        var requests = JSON.parse(this.responseText);
-        var promises = [];
-
-        var browsers = [];
-        var browser_options = document.getElementById("browsers").options;
-        for (var opt of browser_options) {
-            if (opt.selected) {
-                browsers.push(opt.value);
-            }
+    function updateDomain(domain) {
+        if (domain == gDomain) {
+            return new Promise(function(resolve, reject) {
+                resolve(gDomainData);
+            });
         }
 
-        if (browsers.length < 2) {
-            browsers = document.getElementById('browser_prefixes').value.split(',').map(String.trim);
-        }
-        var connectivity = document.getElementById('connectivity').value;
+        let url = PRESTO_SERVER + '/api/get/' + encodeURIComponent(domain);
+        return makeXHRRequest(url).then(responseText => {
+            gDomain = domain;
+            gDomainData = JSON.parse(responseText);
+            return gDomainData;
+        });
+    }
 
-        var tmp = requests;
-        requests = [];
-        for (var i in tmp)
-            if (tmp[i].connectivity == connectivity)
-                for (var j in browsers) {
-                    if ( (tmp[i].browser_name + " " + tmp[i].browser_version).startsWith(browsers[j]))
-                        requests.push(tmp[i]);
+    function displayDomain(domain) {
+        updateDomain(domain).then(response => {
+            let browsers = gBrowsers;
+
+            let filtered = response.filter(e => {
+                for (let b of browsers) {
+                    if ((e.browser_name + ' ' + e.browser_version).startsWith(b)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            let promises = filtered.map(obj => { return getResultPromise(obj.id); });
+
+            Promise.all(promises).then(function(results) {
+                let plots = {};
+                for (let i in results) {
+                    processResult(plots, filtered[i].id, results[i], filtered[i].browser_name, filtered[i].browser_version.substring(0,2));
                 }
 
-        for (var i in requests) {
-            promises.push( getResultPromise(requests[i].id) );
+                let cached = $("#cached").is(':checked');
+
+                $('#average').empty();
+                $('#details').empty();
+
+                let plot_values = [];
+                for (let i in plots) {
+                    if (!cached && plots[i].cached)
+                        continue;
+                    plot_values.push(plots[i]);
+                }
+                displayPlot(plot_values, domain);
+            });
+        });
+    }
+
+    function displayStatLine(content) {
+    }
+
+    function addRow(table) {
+        let tr = document.createElement('tr');
+
+        for (let i = 1; i < arguments.length; i++) {
+            let td = document.createElement('td');
+            td.textContent = arguments[i];
+            tr.appendChild(td);
         }
 
-        Promise.all(promises).then(function(results) {
-            var plots = {};
-            for (var i in results) {
-                processResult(plots, requests[i].id, results[i], requests[i].browser_name, requests[i].browser_version.substring(0,2), requests[i].connectivity);
+        table.appendChild(tr);
+        return table;
+    }
+
+    function addAverageRow(browser, value) {
+        let average = document.getElementById('average');
+        return addRow(average, browser, value);
+    }
+
+    function addDetailRow(browser, key, value) {
+        let details = document.getElementById('details');
+        return addRow(details, browser, key, value);
+    }
+
+    function displayPlot(plots, title) {
+        let sorted = $("#sorted").is(':checked');
+        let unsorted = JSON.parse(JSON.stringify(plots));
+
+        for (let plotIndex in plots) {
+          let plot = plots[plotIndex];
+          for (let i = 0; i < plot.y.length; i++)
+            for (let j = i; j< plot.y.length; j++)
+              if (parseInt(plot.y[i]) > parseInt(plot.y[j])) {
+                let temp = plot.y[i];
+                plot.y[i] = plot.y[j];
+                plot.y[j] = temp;
+
+                temp = plot.info[i];
+                plot.info[i] = plot.info[j];
+                plot.info[j] = temp;
+              }
+          plot.x = [];
+          for (let i = 0; i < plot.y.length; i++) {
+            plot.x.push(i);
+          }
+        }
+
+        // Compute stats
+
+        let averages = [];
+
+        let avgFirstDiff = 0;
+        let avgRepeatDiff = 0;
+
+        let firstViewPlots = [];
+        let repeatViewPlots = [];
+
+        let countFirstBetter = 0;
+        let countRepeatBetter = 0;
+
+        for (let plotIndex in plots) {
+            if (plots[plotIndex].cached)
+                repeatViewPlots.push(plots[plotIndex]);
+            else
+                firstViewPlots.push(plots[plotIndex]);
+
+            let avg = 0;
+            for (let i = 0; i < plots[plotIndex].y.length; i++) {
+                avg += plots[plotIndex].y[i]/plots[plotIndex].y.length;
+                addDetailRow(plots[plotIndex].name, i + 1, plots[plotIndex].y[i]);
+            }
+            addAverageRow(plots[plotIndex].name, avg.toFixed(2));
+        }
+
+        if (firstViewPlots.length == 0) {
+            // Clear the graph.
+            console.log('firstViewPlots is empty');
+            Plotly.newPlot('result_plot', [], {});
+            return;
+        }
+
+        let count = 0;
+        for (let i=0;i<firstViewPlots[0].y.length;i++)
+            if (parseInt(firstViewPlots[0].y[i]) && parseInt(firstViewPlots[1].y[i]))
+        {
+            count++;
+            avgFirstDiff += firstViewPlots[0].y[i] - firstViewPlots[1].y[i];
+            if (parseInt(firstViewPlots[0].y[i]) < parseInt(firstViewPlots[1].y[i]))
+                countFirstBetter++;
+        }
+
+        displayStatLine(firstViewPlots[0].name+' '+firstViewPlots[0].version +' vs. '+firstViewPlots[1].name+' '+firstViewPlots[1].version);
+
+        avgFirstDiff = avgFirstDiff/count;
+
+        displayStatLine('Average first diff: ' + avgFirstDiff.toFixed(2));
+        displayStatLine('Count first better: '+countFirstBetter+' / '+count);
+
+        let cached = document.getElementById('cached').checked;
+        if (cached) {
+
+            count = 0;
+            for (let i=0;i<repeatViewPlots[0].y.length;i++)
+                if (parseInt(repeatViewPlots[0].y[i]) && parseInt(repeatViewPlots[1].y[i]))
+            {
+                count++;
+                avgRepeatDiff += repeatViewPlots[0].y[i] - repeatViewPlots[1].y[i];
+                if (parseInt(repeatViewPlots[0].y[i]) < parseInt(repeatViewPlots[1].y[i]))
+                    countRepeatBetter++;
             }
 
-            var cached = document.getElementById('cached').checked;
-            var stats = document.getElementById("stats");
-            stats.textContent = "";
+            avgRepeatDiff = avgRepeatDiff/count;
 
-            var plot_values = [];
-            for (var i in plots) {
-                if (!cached && plots[i].cached)
-                    continue;
-                plot_values.push(plots[i]);
+            displayStatLine('Average repeat diff: ' + avgRepeatDiff.toFixed(2));
+            displayStatLine('Count repeat better: '+countRepeatBetter+' / '+count);
+
+
+        }
+
+        if (!sorted) {
+            plots = unsorted;
+        }
+
+        let tableColumn = document.getElementById('column').value;
+        let layout = {
+          hovermode:'closest',
+          title: title,
+        };
+
+
+        let traces = [];
+        for (let p of plots) {
+            traces.push({y:p.y, type: 'box', name: p.name, info: p.info, boxpoints: 'all'});
+        }
+        Plotly.newPlot('result_plot', traces, layout);
+        let myPlot = document.getElementById('result_plot');
+        myPlot.on('plotly_click', function(clicked){
+            let data = clicked.points[0].data;
+            for (let i=0; i<data.y.length; i++) {
+                console.log(data.y[i], WPT_SERVER + '/result/' + data.info[i]);
             }
-            displayPlot(plot_values, domain);
+        });
+    }
+
+    function lazyGetPlot(plotTable, browser_name, browser_version, cached) {
+        let colors = { 'Firefox': 'red', 'Google Chrome': 'gray', 'Nightly': 'blue'};
+        let color = (cached ? 'light' : '') + colors[browser_name];
+
+        let id = browser_name.substring(0, 16) + ' ' + browser_version + ' ' + (cached ? 'cached' : '');
+        if (plotTable[id]) {
+            return plotTable[id];
+        }
+
+        let sorted = $("#sorted").is(':checked');
+        let mode = (sorted ? 'lines+' : '') + 'markers';
+        plotTable[id] = {
+            name: id,
+            x: [],
+            y: [],
+            info: [],
+            mode: mode,
+            type: 'scatter',
+            marker: { color: color },
+            cached: cached,
+            browser_name: browser_name,
+            version: browser_version
+        };
+        return plotTable[id];
+    }
+
+    function processResult(plots, testid, allRows, browser_name, browser_version) {
+        let net = lazyGetPlot(plots, browser_name, browser_version, 0);
+        let cache = lazyGetPlot(plots, browser_name, browser_version, 1);
+
+        let tableColumn = $('#column').val();
+
+        let net_len = net.x.length - 1;
+        let cache_len = cache.x.length - 1;
+
+        for (let i = 0; i < allRows.length; i++) {
+            let row = allRows[i];
+
+            let y = row[tableColumn];
+            let x = parseInt(row['Run']);
+            let cached = parseInt(row['Cached']);
+            let text = testid+'/'+x+'/details' + (cached ? '/cached' : '');
+
+            if (!cached) {
+                net.x.push(x+net_len);
+                net.y.push(y);
+                net.info.push(text);
+            } else {
+                cache.x.push(x+cache_len);
+                cache.y.push(y);
+                cache.info.push(text);
+            }
+        }
+    }
+
+    function addDomain(domain) {
+        $('#domains').append($('<li/>').click(function() {
+            displayDomain(this.textContent);
+            return false;
+        }).append($('<a>', {
+            href: '#',
+            text: domain
+        })));
+    }
+
+    function getDomains() {
+        makeXHRRequest(PRESTO_SERVER + '/api/domains').then(responseText => {
+            let domains = JSON.parse(responseText);
+            domains.map(addDomain);
+
+            $('#domains li a').click(function(e) {
+                $('#domains li').removeClass('active');
+
+                var $parent = $(this).parent();
+                if (!$parent.hasClass('active')) {
+                    $parent.addClass('active');
+                }
+                e.preventDefault();
+            });
+
+            if (domains.length > 0) {
+                $('#domains li a:first').click();
+            }
+        });
+    }
+
+    function addBrowser(browser) {
+        let tag = browser.browser_name + ' ' + browser.browser_version;
+        let opt = $('<option>', {value: tag, text: tag});
+        $('#browsers').append(opt);
+    }
+
+    function selectBrowser(browsers) {
+        gBrowsers = browsers;
+
+        $("#browsers option:selected").removeAttr("selected");
+        $('#browsers > option').each(function() {
+            for (let b of browsers) {
+                if (this.value.startsWith(b)) {
+                    this.selected = true;
+                    break;
+                }
+            }
+        });
+
+        if (gDomain)
+            displayDomain(gDomain);
+    }
+
+    function getBrowsers() {
+        makeXHRRequest(PRESTO_SERVER + '/api/browsers').then(responseText => {
+            let browsers = JSON.parse(responseText);
+            browsers.forEach(addBrowser);
+
+            $('#browsers').attr({size: browsers.length});
+            $('#cdp-bugs a:first').click();
+        });
+    }
+
+    function setupBugButtons() {
+        $('#bug1141814').on('click', function() {
+            selectBrowser(["Nightly-5540f84fc9d7aebc898781e7fc090348e62078a9", "Nightly-43280c1f99751ca26ed198e501a22bf86a888080"]);
+        })
+
+        $('#bug1312770').on('click', function() {
+            selectBrowser(["Nightly-f83385b4c9bf9d5d1c206e77b03fef4519117690", "Nightly-bcf0b7c1360337e377a49cc0174aa5afd35ecbcd"]);
+        })
+
+        $('#cdp-bugs li a').click(function(e) {
+            $('#cdp-bugs li').removeClass('active');
+
+            var $parent = $(this).parent();
+            if (!$parent.hasClass('active')) {
+                $parent.addClass('active');
+            }
+            e.preventDefault();
+        });
+
+        $('#browsers').change(() => {
+            $('#cdp-bugs li').removeClass('active');
+
+            let browsers = [];
+            $("#browsers option:selected").each(function() {
+                browsers.push($(this).val());
+            });
+
+            if (browsers.length == 2) {
+                selectBrowser(browsers);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        getDomains();
+        getBrowsers();
+        setupBugButtons();
+
+        $('#replot_btn').click(() => {
+            displayDomain(gDomain)
         });
     });
-    var endpointURL = PRESTO_SERVER + "/api/get/"+encodeURIComponent(domain);
-    if (label) {
-        endpointURL += "?label="+label;
-    }
-    oReq.open("GET", endpointURL);
-    oReq.send();
-}
-
-function displayStatLine(content) {
-    var stats = document.getElementById("stats");
-    stats.appendChild(document.createTextNode(content));
-    stats.appendChild(document.createElement("br"));
-}
-
-function displayPlot(plots, title) {
-    var sorted = document.getElementById('sorted').checked;
-    var unsorted = JSON.parse(JSON.stringify(plots));
-
-    for (var plotIndex in plots) {
-      var plot = plots[plotIndex];
-      for (var i = 0; i < plot.y.length; i++)
-        for (var j = i; j< plot.y.length; j++)
-          if (parseInt(plot.y[i]) > parseInt(plot.y[j])) {
-            var temp = plot.y[i];
-            plot.y[i] = plot.y[j];
-            plot.y[j] = temp;
-
-            temp = plot.info[i];
-            plot.info[i] = plot.info[j];
-            plot.info[j] = temp;
-          }
-      plot.x = [];
-      for (var i = 0; i < plot.y.length; i++) {
-        plot.x.push(i);
-      }
-    }
-
-    // Compute stats
-
-    var avgFirstDiff = 0;
-    var avgRepeatDiff = 0;
-
-    var firstViewPlots = [];
-    var repeatViewPlots = [];
-
-    var countFirstBetter = 0;
-    var countRepeatBetter = 0;
-
-    for (var plotIndex in plots) {
-        if (plots[plotIndex].cached)
-            repeatViewPlots.push(plots[plotIndex]);
-        else
-            firstViewPlots.push(plots[plotIndex]);
-    }
-
-    if (firstViewPlots.length == 0) {
-        // Clear the graph.
-        console.log("firstViewPlots is empty");
-        Plotly.newPlot('myDiv', [], {});
-        return;
-    }
-
-    var count = 0;
-    for (var i=0;i<firstViewPlots[0].y.length;i++)
-        if (parseInt(firstViewPlots[0].y[i]) && parseInt(firstViewPlots[1].y[i]))
-    {
-        count++;
-        avgFirstDiff += firstViewPlots[0].y[i] - firstViewPlots[1].y[i];
-        if (parseInt(firstViewPlots[0].y[i]) < parseInt(firstViewPlots[1].y[i]))
-            countFirstBetter++;
-    }
-
-    displayStatLine(firstViewPlots[0].browser_name+" "+firstViewPlots[0].version +" vs. "+firstViewPlots[1].browser_name+" "+firstViewPlots[1].version);
-
-    avgFirstDiff = avgFirstDiff/count;
-
-    displayStatLine("Average first diff: " + avgFirstDiff.toFixed(2));
-    displayStatLine("Count first better: "+countFirstBetter+" / "+count);
-
-    count = 0;
-    for (var i=0;i<repeatViewPlots[0].y.length;i++)
-        if (parseInt(repeatViewPlots[0].y[i]) && parseInt(repeatViewPlots[1].y[i]))
-    {
-        count++;
-        avgRepeatDiff += repeatViewPlots[0].y[i] - repeatViewPlots[1].y[i];
-        if (parseInt(repeatViewPlots[0].y[i]) < parseInt(repeatViewPlots[1].y[i]))
-            countRepeatBetter++;
-    }
-
-    avgRepeatDiff = avgRepeatDiff/count;
-
-    displayStatLine("Average repeat diff: " + avgRepeatDiff.toFixed(2));
-    displayStatLine("Count repeat better: "+countRepeatBetter+" / "+count);
-
-    //
-
-    if (!sorted) {
-        plots = unsorted;
-    }
-
-    var tableColumn = document.getElementById('column').value;
-    var layout = {
-      hovermode:'closest',
-      title: title,
-    };
-
-
-    var traces = [];
-    for (var p of plots) {
-        traces.push({y:p.y, type: 'box', name: p.name, info: p.info, boxpoints: 'all'});
-    }
-    Plotly.newPlot('myDiv', traces, layout);
-    var myPlot = document.getElementById('myDiv');
-    myPlot.on('plotly_click', function(clicked){
-        let data = clicked.points[0].data;
-        for (let i=0; i<data.y.length; i++) {
-            console.log(data.y[i], WPT_SERVER + "/result/" + data.info[i]);
-        }
-    });
-}
-
-function lazyGetPlot(plotTable, browser_name, browser_version, cached, connectivity) {
-  var colors = { 'Firefox': 'red', 'Google Chrome': 'gray', 'Nightly': 'blue'};
-  var color = (cached ? 'light' : '') + colors[browser_name];
-
-  var id = browser_name.substring(0, 16) + " " + browser_version + " " + (cached ? "cached" : "") + " " + connectivity;
-  if (plotTable[id]) {
-    return plotTable[id];
-  }
-
-  var sorted = document.getElementById('sorted').checked;
-  var mode = (sorted ? "lines+" : "") + "markers";
-  plotTable[id] = { name: id, x: [], y: [], info: [], mode: mode, type: 'scatter',  marker: { color: color }, cached: cached, browser_name: browser_name, version: browser_version };
-  return plotTable[id];
-}
-
-function processResult(plots, testid, allRows, browser_name, browser_version, connectivity) {
-    var net = lazyGetPlot(plots, browser_name, browser_version, 0, connectivity);
-    var cache = lazyGetPlot(plots, browser_name, browser_version, 1, connectivity);
-
-    var tableColumn = document.getElementById('column').value;
-
-    var net_len = net.x.length - 1;
-    var cache_len = cache.x.length - 1;
-
-    for (var i = 0; i < allRows.length; i++) {
-        var row = allRows[i];
-
-        var y = row[tableColumn];
-        var x = parseInt(row['Run']);
-        var cached = parseInt(row['Cached']);
-        var text = testid+"/"+x+"/details" + (cached ? "/cached" : "");
-
-        if (!cached) {
-            net.x.push(x+net_len);
-            net.y.push(y);
-            net.info.push(text);
-        } else {
-            cache.x.push(x+cache_len);
-            cache.y.push(y);
-            cache.info.push(text);
-        }
-    }
-}
-
-window.addEventListener("load", function() {
-    var oReq = new XMLHttpRequest();
-    oReq.addEventListener("load", function() {
-        var table = document.getElementById("domains");
-        var domains = JSON.parse(this.responseText);
-        for (var i in domains) {
-            var tr = document.createElement('tr');
-            var td = document.createElement('td');
-            var domain = domains[i];
-            td.onclick = function() {
-                displayDomain(this.textContent);
-                return false;
-            }
-            var a = document.createElement('a');
-            a.href = "#";
-            a.textContent = domains[i];
-            td.appendChild(a);
-            tr.appendChild(td);
-            table.appendChild(tr);
-        }
-    });
-    oReq.open("GET", PRESTO_SERVER + "/api/domains");
-    oReq.send();
-});
-
-window.addEventListener("load", function() {
-    var oReq = new XMLHttpRequest();
-    oReq.addEventListener("load", function() {
-        var select = document.getElementById("browsers");
-        var browsers = JSON.parse(this.responseText);
-        for (var i in browsers) {
-            var option = document.createElement('option');
-            option.value = browsers[i].browser_name + ' ' + browsers[i].browser_version;
-            option.textContent = browsers[i].browser_name + ' ' + browsers[i].browser_version;
-            select.appendChild(option);
-        }
-        select.size = browsers.length;
-    });
-    oReq.open("GET", PRESTO_SERVER + "/api/browsers");
-    oReq.send();
-});
+})(this);
