@@ -24,7 +24,17 @@ function displayDomain(domain) {
         var requests = JSON.parse(this.responseText);
         var promises = [];
 
-        var browsers = document.getElementById('browser_prefixes').value.split(',').map(String.trim);
+        var browsers = [];
+        var browser_options = document.getElementById("browsers").options;
+        for (var opt of browser_options) {
+            if (opt.selected) {
+                browsers.push(opt.value);
+            }
+        }
+
+        if (browsers.length < 2) {
+            browsers = document.getElementById('browser_prefixes').value.split(',').map(String.trim);
+        }
         var connectivity = document.getElementById('connectivity').value;
 
         var tmp = requests;
@@ -184,8 +194,7 @@ function lazyGetPlot(plotTable, browser_name, browser_version, cached, connectiv
   var colors = { 'Firefox': 'red', 'Google Chrome': 'gray', 'Nightly': 'blue'};
   var color = (cached ? 'light' : '') + colors[browser_name];
 
-  // var id = browser_name + " " + browser_version + " " + (cached ? "repeatView" : "firstView") + " " + connectivity;
-  var id = browser_name.substring(0, 16) + " " + browser_version + " " + (cached ? "2ndView" : "1stView");
+  var id = browser_name.substring(0, 16) + " " + browser_version + " " + (cached ? "cached" : "") + " " + connectivity;
   if (plotTable[id]) {
     return plotTable[id];
   }
@@ -247,5 +256,22 @@ window.addEventListener("load", function() {
         }
     });
     oReq.open("GET", PRESTO_SERVER + "/api/domains");
+    oReq.send();
+});
+
+window.addEventListener("load", function() {
+    var oReq = new XMLHttpRequest();
+    oReq.addEventListener("load", function() {
+        var select = document.getElementById("browsers");
+        var browsers = JSON.parse(this.responseText);
+        for (var i in browsers) {
+            var option = document.createElement('option');
+            option.value = browsers[i].browser_name + ' ' + browsers[i].browser_version;
+            option.textContent = browsers[i].browser_name + ' ' + browsers[i].browser_version;
+            select.appendChild(option);
+        }
+        select.size = browsers.length;
+    });
+    oReq.open("GET", PRESTO_SERVER + "/api/browsers");
     oReq.send();
 });
