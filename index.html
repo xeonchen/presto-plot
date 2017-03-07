@@ -51,8 +51,11 @@
       <div class="row">
         <div class="col-sm-3 col-md-2 sidebar">
           <ul id="cdp-bugs" class="nav nav-sidebar">
-            <li><a id="bug1141814" href="#">Bug-1141814</a></li>
-            <li><a id="bug1312770" href="#">Bug-1312770</a></li>
+            <li><a id="nightly" class="hidden" href="#">Nightly</a></li>
+            <li><a id="059800dab5a748d75405654ef08f43fb79eeeabb" class="hidden" href="#">Bug-1141814 (Before)</a></li>
+            <li><a id="c76e1a0c770f2180e331bde73f081f4b063dd40f" class="hidden" href="#">Bug-1141814 (After)</a></li>
+            <!--li><a id="bug1312770-0" href="#">Bug-1312770 (Before)</a></li>
+            <li><a id="bug1312770-1" href="#">Bug-1312770 (After)</a></li-->
           </ul>
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
@@ -67,75 +70,75 @@
           <div class="row placeholders">
             <form class="form-inline">
               <select id="column">
-                <option value="Speed Index" selected="selected"> Speed Index </option>
-                <option value="Load Time (ms)"> Load Time (ms) </option>
-                <option value="Time to First Byte (ms)"> Time to First Byte (ms) </option>
-                <option value="Bytes Out"> Bytes Out </option>
-                <option value="Bytes In"> Bytes In </option>
-                <option value="DNS Lookups"> DNS Lookups </option>
-                <option value="Connections"> Connections </option>
-                <option value="Requests"> Requests </option>
-                <option value="OK Responses"> OK Responses </option>
-                <option value="Redirects"> Redirects </option>
-                <option value="Not Modified"> Not Modified </option>
-                <option value="Not Found"> Not Found </option>
-                <option value="Other Responses"> Other Responses </option>
-                <option value="Time to Start Render (ms)"> Time to Start Render (ms) </option>
-                <option value="Segments Transmitted"> Segments Transmitted </option>
-                <option value="Segments Retransmitted"> Segments Retransmitted </option>
-                <option value="Packet Loss (out)"> Packet Loss (out) </option>
-                <option value="Activity Time(ms)"> Activity Time(ms) </option>
-                <option value="Doc Complete Time (ms)"> Doc Complete Time (ms) </option>
-                <option value="Event GUID"> Event GUID </option>
-                <option value="Time to DOM Element (ms)"> Time to DOM Element (ms) </option>
-                <option value="Includes Object Data"> Includes Object Data </option>
-                <option value="Cache Score"> Cache Score </option>
-                <option value="Static CDN Score"> Static CDN Score </option>
-                <option value="One CDN Score"> One CDN Score </option>
-                <option value="GZIP Score"> GZIP Score </option>
-                <option value="Cookie Score"> Cookie Score </option>
-                <option value="Keep-Alive Score"> Keep-Alive Score </option>
-                <option value="DOCTYPE Score"> DOCTYPE Score </option>
-                <option value="Minify Score"> Minify Score </option>
-                <option value="Combine Score"> Combine Score </option>
-                <option value="Bytes Out (Doc)"> Bytes Out (Doc) </option>
-                <option value="Bytes In (Doc)"> Bytes In (Doc) </option>
-                <option value="DNS Lookups (Doc)"> DNS Lookups (Doc) </option>
-                <option value="Connections (Doc)"> Connections (Doc) </option>
-                <option value="Requests (Doc)"> Requests (Doc) </option>
-                <option value="OK Responses (Doc)"> OK Responses (Doc) </option>
-                <option value="Redirects (Doc)"> Redirects (Doc) </option>
-                <option value="Not Modified (Doc)"> Not Modified (Doc) </option>
-                <option value="Not Found (Doc)"> Not Found (Doc) </option>
-                <option value="Other Responses (Doc)"> Other Responses (Doc) </option>
-                <option value="Compression Score"> Compression Score </option>
-                <option value="ETag Score"> ETag Score </option>
-                <option value="Flagged Requests"> Flagged Requests </option>
-                <option value="Flagged Connections"> Flagged Connections </option>
-                <option value="Max Simultaneous Flagged Connections"> Max Simultaneous Flagged Connections </option>
-                <option value="Time to Base Page Complete (ms)"> Time to Base Page Complete (ms) </option>
-                <option value="Base Page Result"> Base Page Result </option>
-                <option value="Gzip Total Bytes"> Gzip Total Bytes </option>
-                <option value="Gzip Savings"> Gzip Savings </option>
-                <option value="Minify Total Bytes"> Minify Total Bytes </option>
-                <option value="Minify Savings"> Minify Savings </option>
-                <option value="Image Total Bytes"> Image Total Bytes </option>
-                <option value="Image Savings"> Image Savings </option>
-                <option value="Base Page Redirects"> Base Page Redirects </option>
-                <option value="AFT (ms)"> AFT (ms) </option>
-                <option value="DOM Elements"> DOM Elements </option>
-                <option value="PageSpeed Version"> PageSpeed Version </option>
-                <option value="Time to Title"> Time to Title </option>
-                <option value="Load Event Start"> Load Event Start </option>
-                <option value="Load Event End"> Load Event End </option>
-                <option value="DOM Content Ready Start"> DOM Content Ready Start </option>
-                <option value="DOM Content Ready End"> DOM Content Ready End </option>
-                <option value="Visually Complete (ms)"> Visually Complete (ms) </option>
-                <option value="Base Page Server Count"> Base Page Server Count </option>
-                <option value="Base Page Server RTT"> Base Page Server RTT </option>
+                <option value="Speed Index" selected="selected">Speed Index</option>
+                <option value="Load Time (ms)">Load Time (ms)</option>
+                <option value="Time to First Byte (ms)">Time to First Byte (ms)</option>
+                <option value="Bytes Out">Bytes Out</option>
+                <option value="Bytes In">Bytes In</option>
+                <option value="DNS Lookups">DNS Lookups</option>
+                <option value="Connections">Connections</option>
+                <option value="Requests">Requests</option>
+                <option value="OK Responses">OK Responses</option>
+                <option value="Redirects">Redirects</option>
+                <option value="Not Modified">Not Modified</option>
+                <option value="Not Found">Not Found</option>
+                <option value="Other Responses">Other Responses</option>
+                <option value="Time to Start Render (ms)">Time to Start Render (ms)</option>
+                <option value="Segments Transmitted">Segments Transmitted</option>
+                <option value="Segments Retransmitted">Segments Retransmitted</option>
+                <option value="Packet Loss (out)">Packet Loss (out)</option>
+                <option value="Activity Time(ms)">Activity Time(ms)</option>
+                <option value="Doc Complete Time (ms)">Doc Complete Time (ms)</option>
+                <option value="Event GUID">Event GUID</option>
+                <option value="Time to DOM Element (ms)">Time to DOM Element (ms)</option>
+                <option value="Includes Object Data">Includes Object Data</option>
+                <option value="Cache Score">Cache Score</option>
+                <option value="Static CDN Score">Static CDN Score</option>
+                <option value="One CDN Score">One CDN Score</option>
+                <option value="GZIP Score">GZIP Score</option>
+                <option value="Cookie Score">Cookie Score</option>
+                <option value="Keep-Alive Score">Keep-Alive Score</option>
+                <option value="DOCTYPE Score">DOCTYPE Score</option>
+                <option value="Minify Score">Minify Score</option>
+                <option value="Combine Score">Combine Score</option>
+                <option value="Bytes Out (Doc)">Bytes Out (Doc)</option>
+                <option value="Bytes In (Doc)">Bytes In (Doc)</option>
+                <option value="DNS Lookups (Doc)">DNS Lookups (Doc)</option>
+                <option value="Connections (Doc)">Connections (Doc)</option>
+                <option value="Requests (Doc)">Requests (Doc)</option>
+                <option value="OK Responses (Doc)">OK Responses (Doc)</option>
+                <option value="Redirects (Doc)">Redirects (Doc)</option>
+                <option value="Not Modified (Doc)">Not Modified (Doc)</option>
+                <option value="Not Found (Doc)">Not Found (Doc)</option>
+                <option value="Other Responses (Doc)">Other Responses (Doc)</option>
+                <option value="Compression Score">Compression Score</option>
+                <option value="ETag Score">ETag Score</option>
+                <option value="Flagged Requests">Flagged Requests</option>
+                <option value="Flagged Connections">Flagged Connections</option>
+                <option value="Max Simultaneous Flagged Connections">Max Simultaneous Flagged Connections</option>
+                <option value="Time to Base Page Complete (ms)">Time to Base Page Complete (ms)</option>
+                <option value="Base Page Result">Base Page Result</option>
+                <option value="Gzip Total Bytes">Gzip Total Bytes</option>
+                <option value="Gzip Savings">Gzip Savings</option>
+                <option value="Minify Total Bytes">Minify Total Bytes</option>
+                <option value="Minify Savings">Minify Savings</option>
+                <option value="Image Total Bytes">Image Total Bytes</option>
+                <option value="Image Savings">Image Savings</option>
+                <option value="Base Page Redirects">Base Page Redirects</option>
+                <option value="AFT (ms)">AFT (ms)</option>
+                <option value="DOM Elements">DOM Elements</option>
+                <option value="PageSpeed Version">PageSpeed Version</option>
+                <option value="Time to Title">Time to Title</option>
+                <option value="Load Event Start">Load Event Start</option>
+                <option value="Load Event End">Load Event End</option>
+                <option value="DOM Content Ready Start">DOM Content Ready Start</option>
+                <option value="DOM Content Ready End">DOM Content Ready End</option>
+                <option value="Visually Complete (ms)">Visually Complete (ms)</option>
+                <option value="Base Page Server Count">Base Page Server Count</option>
+                <option value="Base Page Server RTT">Base Page Server RTT</option>
               </select>
 
-              <button id="replot_btn" type="button" class="btn btn-primary" autocomplete="off"> Replot </button>
+              <button id="replot_btn" type="button" class="btn btn-primary" autocomplete="off">Replot</button>
 
               <div class="checkbox">
                 <label>
@@ -148,9 +151,6 @@
                   <input type="checkbox" id="cached" checked> Display Repeat View
                 </label>
               </div>
-
-              <div class="hidden">Test label: <input type="text" id="test_label"></div>
-
             </form>
           </div>
 
