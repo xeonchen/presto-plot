@@ -5,6 +5,7 @@
     let gDomain = null;
     let gDomainData = null;
     let gBrowsers = null;
+    let gLabel = null;
 
     const WPT_SERVER = 'http://moz.xeon.tw';
     const PRESTO_SERVER = 'http://moz.xeon.tw:3000';
@@ -40,16 +41,23 @@
     }
 
     function updateDomain(domain) {
-        if (domain == gDomain) {
-            return new Promise(function(resolve, reject) {
-                resolve(gDomainData);
-            });
-        }
+        console.log('domain: ' + domain + ', gDomain: ' + gDomain);
+        // if (domain == gDomain) {
+        //     return new Promise(function(resolve, reject) {
+        //         resolve(gDomainData);
+        //     });
+        // }
 
         let url = PRESTO_SERVER + '/api/get/' + encodeURIComponent(domain);
+        if (gLabel) {
+            url += '?label=' + gLabel;
+        }
+
+        console.log('url: ' + url);
         return makeXHRRequest(url).then(responseText => {
             gDomain = domain;
             gDomainData = JSON.parse(responseText);
+            console.log('gDomainData: ' + gDomainData);
             return gDomainData;
         });
     }
@@ -58,7 +66,9 @@
         updateDomain(domain).then(response => {
             let browsers = gBrowsers;
 
+            console.log('response: ' + response);
             let filtered = response.filter(e => {
+                if (!browsers) return true;
                 for (let b of browsers) {
                     if ((e.browser_name + ' ' + e.browser_version).startsWith(b)) {
                         return true;
@@ -71,8 +81,11 @@
 
             Promise.all(promises).then(function(results) {
                 let plots = {};
+                console.log('results: ' + results);
                 for (let i in results) {
-                    processResult(plots, filtered[i].id, results[i], filtered[i].browser_name, filtered[i].browser_version.substring(0,2));
+                    if (filtered[i].browser_name && filtered[i].browser_version) {
+                        processResult(plots, filtered[i].id, results[i], filtered[i].browser_name, filtered[i].browser_version.substring(0,2));
+                    }
                 }
 
                 let cached = $("#cached").is(':checked');
@@ -118,6 +131,7 @@
     }
 
     function displayPlot(plots, title) {
+        console.log('displayPlot');
         let sorted = $("#sorted").is(':checked');
         let unsorted = JSON.parse(JSON.stringify(plots));
 
@@ -153,11 +167,16 @@
         let countFirstBetter = 0;
         let countRepeatBetter = 0;
 
+        console.log('plots: ' + plots);
         for (let plotIndex in plots) {
-            if (plots[plotIndex].cached)
+            console.log('plotIndex: ' + plotIndex);
+            if (plots[plotIndex].cached) {
                 repeatViewPlots.push(plots[plotIndex]);
-            else
+                repeatViewPlots.push(plots[plotIndex]);
+            } else {
                 firstViewPlots.push(plots[plotIndex]);
+                firstViewPlots.push(plots[plotIndex]);
+            }
 
             let avg = 0;
             for (let i = 0; i < plots[plotIndex].y.length; i++) {
@@ -324,6 +343,10 @@
     }
 
     function addBrowser(browser) {
+        if (!browser.browser_name || !browser.browser_version) {
+            return;
+        }
+
         let tag = browser.browser_name + ' ' + browser.browser_version;
         let opt = $('<option>', {value: tag, text: tag});
         $('#browsers').append(opt);
@@ -331,6 +354,7 @@
 
     function selectBrowser(browsers) {
         gBrowsers = browsers;
+        console.log('browsers = ' + browsers);
 
         $("#browsers option:selected").removeAttr("selected");
         $('#browsers > option').each(function() {
@@ -342,8 +366,9 @@
             }
         });
 
-        if (gDomain)
+        if (gDomain) {
             displayDomain(gDomain);
+        }
     }
 
     function getBrowsers() {
@@ -356,13 +381,39 @@
         });
     }
 
+    function addLabel(label) {
+        // let opt = $('<option>', {value: label, text: label});
+        // $('#test_label').append(opt);
+        $('#' + label).removeClass('hidden');
+    }
+
+    function selectLabel(label) {
+        gLabel = label;
+        console.log('select label: ' + label);
+
+        if (gDomain) {
+            displayDomain(gDomain);
+        }
+    }
+
+    function getLabels() {
+        makeXHRRequest(PRESTO_SERVER + '/api/labels').then(responseText => {
+            let labels = JSON.parse(responseText);
+            labels.forEach(addLabel);
+        });
+    }
+
     function setupBugButtons() {
-        $('#bug1141814').on('click', function() {
-            selectBrowser(["Nightly-5540f84fc9d7aebc898781e7fc090348e62078a9", "Nightly-43280c1f99751ca26ed198e501a22bf86a888080"]);
+        $('#nightly').on('click', function() {
+            selectLabel('nightly');
         })
 
-        $('#bug1312770').on('click', function() {
-            selectBrowser(["Nightly-f83385b4c9bf9d5d1c206e77b03fef4519117690", "Nightly-bcf0b7c1360337e377a49cc0174aa5afd35ecbcd"]);
+        $('#059800dab5a748d75405654ef08f43fb79eeeabb').on('click', function() {
+            selectLabel('059800dab5a748d75405654ef08f43fb79eeeabb');
+        })
+
+        $('#c76e1a0c770f2180e331bde73f081f4b063dd40f').on('click', function() {
+            selectLabel('c76e1a0c770f2180e331bde73f081f4b063dd40f');
         })
 
         $('#cdp-bugs li a').click(function(e) {
@@ -383,15 +434,14 @@
                 browsers.push($(this).val());
             });
 
-            if (browsers.length == 2) {
-                selectBrowser(browsers);
-            }
+            selectBrowser(browsers);
         });
     }
 
     $(document).ready(function() {
         getDomains();
         getBrowsers();
+        getLabels();
         setupBugButtons();
 
         $('#replot_btn').click(() => {
